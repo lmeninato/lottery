@@ -64,10 +64,7 @@ fn parse_numbers(n: usize) -> Vec<usize> {
 
     for num in a_iter {
         match num.parse::<usize>() {
-            Ok(n) => {
-                println!("Parsed {}", n);
-                result.push(n)
-            },
+            Ok(n) => result.push(n),
             Err(_) => {}
         }
     }
@@ -87,8 +84,8 @@ For instance:
 10
 1
 Amy 
-3
 100
+3
 250 200 300
 
 Will create the single user Amy with 100 tickets, and three jobs with
@@ -113,8 +110,6 @@ fn get_user_input() -> (usize, Vec<User>){
             .into_iter()
             .map(|work| create_job(work))
             .collect();
-
-        println!("Collected jobs: {:?}", jobs);
 
         users.push(User {
             name: String::from(name),
