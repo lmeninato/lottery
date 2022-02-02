@@ -51,9 +51,10 @@ fn parse_numbers(n: usize) -> Vec<usize> {
 fn print_help_message_and_exit() {
     let help_message = "Please input (or via stdin redirection) the scheduler configuration.
 
-Please enter the quantum, iterations, users and corresponding jobs and tickets.
+Please enter the comp flag, quantum, iterations, users and corresponding jobs and tickets.
 For instance:
 
+1
 10
 5
 1
@@ -63,14 +64,21 @@ Amy
 250 200 300
 
 Will create the single user Amy with 100 tickets, and three jobs with
-respective work times 250, 200, and 300 with a quantum of 10 and run 5 iterations of the
-lottery scheduling.
+respective work times 250, 200, and 300 with a quantum of 10, using compensatory tickets
+and run 5 iterations of the lottery scheduling.
 ";
     println!("{}", help_message);
     panic!("Exiting...");
 }
 
-pub fn get_user_input() -> (usize, usize, Vec<User>) {
+pub fn get_user_input() -> (bool, usize, usize, Vec<User>) {
+    let comp_int = parse_line::<usize>();
+    let comp: bool;
+    if comp_int > 0 {
+        comp = true;
+    } else {
+        comp = false;
+    }
     let quantum = parse_line::<usize>();
     let iterations = parse_line::<usize>();
     let num_users = parse_line::<usize>();
@@ -89,8 +97,9 @@ pub fn get_user_input() -> (usize, usize, Vec<User>) {
             name: String::from(name),
             jobs: jobs,
             tickets: tickets,
+            comp: 0
         });
     }
 
-    (quantum, iterations, users)
+    (comp, quantum, iterations, users)
 }

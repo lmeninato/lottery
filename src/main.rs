@@ -35,7 +35,7 @@ fn work_queue_is_not_empty(users: &Vec<User>) -> bool {
     false
 }
 
-fn compute_lottery_winner<'a>(users: &'a mut Vec<User>) -> &mut User {
+fn compute_lottery_winner(users: &mut Vec<User>) -> &mut User {
     let weights: Vec<usize> = users.iter().map(|user| user.tickets).collect();
     let mut rng = thread_rng();
     let dist = WeightedIndex::new(&weights).unwrap();
@@ -68,12 +68,12 @@ fn print_summary(
     }
 }
 
-fn get_expected_wins(iterations: usize, users: &Vec<User>) -> HashMap<String, f32> {
+fn get_expected_wins(iterations: usize, users: &mut Vec<User>) -> HashMap<String, f32> {
     let mut map_expected_wins: HashMap<String, f32> = HashMap::new();
     // wlog assume users have the same amount of total work
     let total_tickets = users
-        .iter()
-        .map(|user| user.tickets)
+        .iter_mut()
+        .map(|user| user.get_tickets())
         .fold(0, |sum, i| sum + i);
 
     for user in users {
@@ -100,7 +100,7 @@ fn simulate_lottery_scheduling(
 
     while work_queue_is_not_empty(users) && i < iterations {
         let winner = compute_lottery_winner(users);
-        let remainder = winner.do_work(quantum);
+        let remainder = winner.do_work(quantum, compensatory);
         let work_performed = quantum - remainder;
 
         println!(
@@ -114,10 +114,6 @@ fn simulate_lottery_scheduling(
         winners_over_time.push((total_work, winner.get_name()));
 
         total_work += work_performed;
-
-        if remainder > 0 && compensatory {
-            // need to issue compensatory tickets to winner
-        }
 
         num_lotteries += 1;
         i += 1;
@@ -133,11 +129,11 @@ fn simulate_lottery_scheduling(
 }
 
 fn main() {
-    let (quantum, iterations, mut users) = parse::get_user_input();
+    let (comp, quantum, iterations, mut users) = parse::get_user_input();
 
-    println!("\nQuantum is {}\n", quantum);
+    println!("\nQuantum is {} (Comp tickets set to: {}) \n", quantum, comp);
 
     inspect_users(&users);
 
-    simulate_lottery_scheduling(quantum, iterations, &mut users, false);
+    simulate_lottery_scheduling(quantum, iterations, &mut users, comp);
 }
