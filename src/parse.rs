@@ -51,10 +51,11 @@ fn parse_numbers(n: usize) -> Vec<usize> {
 fn print_help_message_and_exit() {
     let help_message = "Please input (or via stdin redirection) the scheduler configuration.
 
-Please enter the quantum, users and corresponding jobs and tickets.
+Please enter the quantum, iterations, users and corresponding jobs and tickets.
 For instance:
 
 10
+5
 1
 Amy 
 100
@@ -62,14 +63,16 @@ Amy
 250 200 300
 
 Will create the single user Amy with 100 tickets, and three jobs with
-respective work times 250, 200, and 300 with a quantum of 10.
+respective work times 250, 200, and 300 with a quantum of 10 and run 5 iterations of the
+lottery scheduling.
 ";
     println!("{}", help_message);
     panic!("Exiting...");
 }
 
-pub fn get_user_input() -> (usize, Vec<User>) {
+pub fn get_user_input() -> (usize, usize, Vec<User>) {
     let quantum = parse_line::<usize>();
+    let iterations = parse_line::<usize>();
     let num_users = parse_line::<usize>();
 
     let mut users: Vec<User> = vec![];
@@ -77,7 +80,7 @@ pub fn get_user_input() -> (usize, Vec<User>) {
         let name = parse_line::<String>();
         let tickets = parse_line::<usize>();
         let num_jobs = parse_line::<usize>();
-        let mut jobs: Vec<Job> = parse_numbers(num_jobs)
+        let jobs: Vec<Job> = parse_numbers(num_jobs)
             .into_iter()
             .map(|work| create_job(work))
             .collect();
@@ -89,5 +92,5 @@ pub fn get_user_input() -> (usize, Vec<User>) {
         });
     }
 
-    (quantum, users)
+    (quantum, iterations, users)
 }

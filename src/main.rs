@@ -1,23 +1,25 @@
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
+use std::collections::HashMap;
+
 mod parse;
 mod user;
 
 pub use user::User;
 
-fn inspect(user: User) {
+fn inspect(user: &User) {
     println!("User: {} ({} tickets) has jobs:", user.name, user.tickets);
 
     for (i, job) in user.jobs.iter().enumerate() {
         println!("Job {}", i);
-        println!("  Total work to do: {}", job.work);
-        println!("  Work remaining: {}", job.remaining);
+        println!("  Work: {}", job.work);
+        println!("  Remaining: {}", job.remaining);
     }
     println!("");
 }
 
-fn inspect_users(users: Vec<User>) {
+fn inspect_users(users: &Vec<User>) {
     for user in users {
         inspect(user);
     }
@@ -41,31 +43,101 @@ fn compute_lottery_winner<'a>(users: &'a mut Vec<User>) -> &mut User {
     &mut users[dist.sample(&mut rng)]
 }
 
-fn simulate_lottery_scheduling(quantum: usize, users: &mut Vec<User>, compensatory: bool) {
-    let mut total_work: usize = 0;
+fn print_summary(
+    num_lotteries: usize,
+    total_work: usize,
+    winner_map: HashMap<String, usize>,
+    expected_wins: HashMap<String, f32>,
+    work_map: HashMap<String, usize>,
+) {
+    println!("There were {} lotteries", num_lotteries);
 
-    while work_queue_is_not_empty(users) {
-        let mut winner = compute_lottery_winner(users);
-        let remainder = winner.do_work(quantum);
+    for (winner, num_wins) in &winner_map {
+        let expected = expected_wins.get(winner).unwrap();
+        println!(
+            "User: {} won {} times (expected {:.2})",
+            winner, num_wins, expected
+        );
 
-        total_work += quantum-remainder;
+        let work = work_map.get(winner).unwrap();
+        let cpu_share = 100.0 * (*work as f32) / total_work as f32;
+        println!(
+            "User: {} performed {} units of work ({:.2}%)",
+            winner, work, cpu_share
+        );
+    }
+}
 
-        if compensatory {
-            // handle case with compensatory tickets
-        } else {
+fn get_expected_wins(iterations: usize, users: &Vec<User>) -> HashMap<String, f32> {
+    let mut map_expected_wins: HashMap<String, f32> = HashMap::new();
+    // wlog assume users have the same amount of total work
+    let total_tickets = users
+        .iter()
+        .map(|user| user.tickets)
+        .fold(0, |sum, i| sum + i);
 
-        }
+    for user in users {
+        let expected_wins = (user.tickets as f32 / total_tickets as f32) * (iterations as f32);
+        map_expected_wins.insert(user.get_name(), expected_wins);
     }
 
-    println!("Total work is: {}", total_work);
+    map_expected_wins
+}
+
+fn simulate_lottery_scheduling(
+    quantum: usize,
+    iterations: usize,
+    users: &mut Vec<User>,
+    compensatory: bool,
+) {
+    let mut total_work: usize = 0;
+    let mut winners_over_time: Vec<(usize, String)> = vec![];
+    let mut num_lotteries: usize = 0;
+    let mut times_won: HashMap<String, usize> = HashMap::new();
+    let mut work_map: HashMap<String, usize> = HashMap::new();
+    let expected_wins = get_expected_wins(iterations, users);
+    let mut i = 0;
+
+    while work_queue_is_not_empty(users) && i < iterations {
+        let winner = compute_lottery_winner(users);
+        let remainder = winner.do_work(quantum);
+        let work_performed = quantum - remainder;
+
+        println!(
+            "At time: {}, the winner was: {}",
+            total_work,
+            winner.get_name()
+        );
+        *times_won.entry(winner.get_name()).or_insert(0) += 1;
+        *work_map.entry(winner.get_name()).or_insert(0) += work_performed;
+
+        winners_over_time.push((total_work, winner.get_name()));
+
+        total_work += work_performed;
+
+        if remainder > 0 && compensatory {
+            // need to issue compensatory tickets to winner
+        }
+
+        num_lotteries += 1;
+        i += 1;
+    }
+
+    print_summary(
+        num_lotteries,
+        total_work,
+        times_won,
+        expected_wins,
+        work_map,
+    );
 }
 
 fn main() {
-    let (quantum, mut users) = parse::get_user_input();
+    let (quantum, iterations, mut users) = parse::get_user_input();
 
     println!("\nQuantum is {}\n", quantum);
 
-    simulate_lottery_scheduling(quantum, &mut users, false);
+    inspect_users(&users);
 
-    inspect_users(users);
+    simulate_lottery_scheduling(quantum, iterations, &mut users, false);
 }

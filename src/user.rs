@@ -23,11 +23,30 @@ impl User {
         let mut job = self.jobs.pop().unwrap();
 
         if quantum > job.remaining {
+            if self.jobs.len() == 0 {
+                // User can no longer win lotteries
+                // If job was added back to queue, would need to update this value.
+                self.tickets = 0;
+            }
+
             return quantum - job.remaining;
         }
 
         job.remaining -= quantum;
+        self.jobs.push(job);
 
         0
+    }
+
+    pub fn get_name(&self) -> String {
+        self.name.clone()
+    }
+
+    pub fn get_total_work(&self) -> usize {
+        let mut work = 0;
+        for job in &self.jobs {
+            work += job.work;
+        }
+        work
     }
 }
